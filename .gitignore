@@ -1,0 +1,7 @@
+/cmake-build-debug
+/build
+/lib
+/lib/glad
+/lib/glm
+/lib/glad/CMakeLists.txt
+/lib/glad/GladConfig.cmake
