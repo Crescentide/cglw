@@ -2,23 +2,24 @@
 // Created by kirut on 8/6/2025.
 //
 
-#ifndef CGL_LOADER_H
-#define CGL_LOADER_H
+#ifndef CGLW_LOADER_H
+#define CGLW_LOADER_H
 
 #include <string_view>
 #include "Log.h"
+#include "glad/gl.h"
 
 namespace cglw {
-    struct CGLWSettings {
-        bool useDSA; // enables Direct State Access instead of binds
+    using getGLFunction = GLADloadfunc;
+
+    struct Settings {
+        getGLFunction loadFunc;
         std::function<void(Log::Type, std::string_view, std::string)> logCallback = nullptr; // providing enables logs
-        bool enableDebugLogs;
-        bool enableOpenGLLogs; // must have logs enabled
+        Log::Flags enabledLogs; // must have provided log callback
     };
 
-    using getGLFunction = GLADloadfunc;
-    static bool load(getGLFunction pLoadFunc, CGLWSettings &pSettings);
+    bool load(Settings &pSettings);
 
-}// namespace CGL
+}// namespace CGLW
 
-#endif//CGL_LOADER_H
+#endif//CGLW_LOADER_H

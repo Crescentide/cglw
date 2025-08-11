@@ -5,70 +5,72 @@
 #include "VertexArray.h"
 #include "Log.h"
 #include "glad/gl.h"
+#include <utility>
 
 namespace cglw {
-VertexArray::VertexArray() : mID(createVAO()) {
+    VertexArray::VertexArray() {
+        Log::trace(LOG_TAG, "Creating a new Vertex Array");
 
-}
-VertexArray::~VertexArray() {
-  tryDestroy();
-}
-VertexArray::VertexArray(VertexArray &&other) noexcept : mID(other.mID) {
-  other.mID = INVALID_ID;
-}
-VertexArray &VertexArray::operator=(VertexArray &&other) noexcept {
-  if (this != &other) {
-    tryDestroy();
+        glCreateVertexArrays(NUM_VAOS, &mID);
+        if (mID == INVALID_ID) {
+            throw std::runtime_error("Failed to create a new Vertex Array ID");
+        }
 
-    mID = other.mID;
+        Log::debug(LOG_TAG, "Successfully created a new Vertex Array, ID: {}", mID);
+    }
+    VertexArray::~VertexArray() {
+        Log::trace(LOG_TAG, "Destroying a Vertex Array, ID: {}", mID);
 
-    other.mID = INVALID_ID;
-  }
+        if (mID != INVALID_ID) glDeleteVertexArrays(NUM_VAOS, &mID);
 
-  return *this;
-}
-unsigned int VertexArray::createVAO() {
-  unsigned int vao = INVALID_ID;
+        Log::debug(LOG_TAG, "Successfully destroyed a Vertex Array");
+    }
+    VertexArray::VertexArray(VertexArray &&other) noexcept {
+        mID = std::exchange(other.mID, INVALID_ID);
 
-  glGenVertexArrays(NUM_VAO, &vao);
-  if (vao == INVALID_ID) {
-    Log::warn(LOG_TAG, "Failed to create a new Vertex Array ID!");
-  }
+        Log::trace(LOG_TAG, "Moving a Vertex Array, ID: {}", mID);
+    }
+    VertexArray &VertexArray::operator=(VertexArray &&other) noexcept {
+      if (this != &other) {
+          Log::trace(LOG_TAG, "Moving a Vertex Array, ID: {} to Vertex Array, ID: {}", mID, other.mID);
 
-  return vao;
-}
-bool VertexArray::tryDestroy() {
-  if (mID == INVALID_ID) return false;
+          if (mID != INVALID_ID) {
+              Log::trace(LOG_TAG, "Destroying a Vertex Array, ID: {}", mID);
+              glDeleteVertexArrays(NUM_VAOS, &mID);
+          }
 
-  glDeleteVertexArrays(NUM_VAO, &mID);
+          mID = std::exchange(other.mID, INVALID_ID);
+      }
 
-  mID = INVALID_ID;
+      return *this;
+    }
 
-  return true;
-}
-void VertexArray::bind() const {
-  glBindVertexArray(mID);
-}
-void VertexArray::unbind() const {
-  glBindVertexArray(0);
-}
-unsigned int VertexArray::getID() const {
-  return mID;
-}
-void VertexArray::addVertexAttributes(
-    const std::array<VertexAttribute, 3> &pAttributes) const {
-  bind();
+    void VertexArray::addVertexAttributes(Object::ID pVBO,
+        const std::array<VertexAttribute, 3> &pAttributes) const {
 
-  for (int i = 0; i < pAttributes.size(); ++i) {
-    auto& attr = pAttributes[i];
-    glEnableVertexAttribArray(i);
-    glVertexAttribPointer(i, attr.numComponents, attr.numComponents, attr.normalized, sizeof(Vertex), (void*) attr.offset);
-  }
-}
-bool VertexArray::isValid() const {
-  return mID != INVALID_ID;
-}
-void VertexArray::invalidate() {
-  tryDestroy();
-}
+      for (int i = 0; i < pAttributes.size(); ++i) {
+        const auto& attr = pAttributes[i];
+
+        glVertexArrayAttribFormat(
+                mID,                           // VAO ID
+                i,                             // Attribute index
+                attr.numComponents,            // Components (e.g., 3 for vec3)
+                attr.type,                     // Data type (e.g., GL_FLOAT)
+                attr.normalized ? GL_TRUE : GL_FALSE,
+                attr.offset                     // Offset in the vertex struct
+        );
+
+        glVertexArrayAttribBinding(mID, i, i);
+
+        glEnableVertexArrayAttrib(mID, i);
+
+        glVertexArrayVertexBuffer(
+                mID,
+                i,                              // Binding index
+                pVBO,                // Vertex buffer object ID
+                0,                              // Offset in buffer
+                sizeof(Vertex)                  // Stride between vertices
+        );
+      }
+    }
 } // namespace CE

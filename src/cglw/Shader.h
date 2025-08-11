@@ -17,22 +17,18 @@ namespace cglw {
         Geometry = GL_GEOMETRY_SHADER,
     };
 
-    class Shader : public Object { // TODO: Invalid Shader
+    class Shader : public Object {
         static constexpr std::string_view LOG_TAG = "cglw::Shader";
 
         ShaderType mType;
 
-        unsigned int create() override;
-        bool tryDestroy();
+        static constexpr std::string_view typeToStr(ShaderType pType);
 
     public:
         using Type = ShaderType;
 
         Shader(Type pType, std::string_view pPath);
-        ~Shader();
-        // disable copy
-        Shader(const Shader&) = delete;
-        Shader& operator=(const Shader&) = delete;
+        ~Shader() override;
         // moving
         Shader(Shader&& other) noexcept;
         Shader& operator=(Shader&& other) noexcept;

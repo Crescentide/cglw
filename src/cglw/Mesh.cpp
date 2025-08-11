@@ -25,10 +25,10 @@ namespace cglw {
       mVertices(std::move(vertices)), mIndices(std::move(indices)) {
 
         mVBO.setData(mVertices); // TODO: check if correct
-        mVAO.addVertexAttributes(VertexAttributes);
+//        mVAO.addVertexAttributes(VertexAttributes);
         mEBO.setSubData(0, indices);
 
-        mVAO.unbind();
+//        mVAO.unbind();
     }
 
     Mesh::~Mesh() {
@@ -57,8 +57,8 @@ namespace cglw {
     }
 
     void Mesh::draw() {
-        mVAO.bind();
+//        mVAO.bind();
         glDrawElements(GL_TRIANGLES, (GLsizei)mIndices.size(), GL_UNSIGNED_INT, nullptr);
-        mVAO.unbind();
+//        mVAO.unbind();
     }
 } // Engine

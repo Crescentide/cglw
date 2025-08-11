@@ -7,16 +7,16 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <utility>
 
 
 namespace cglw {
-    Shader::Shader(Type pType, std::string_view pPath)
-    : mType(pType), Object(create(), Object::Type::Shader) {
+    Shader::Shader(Type pType, std::string_view pPath) : mType(pType) {
+        Log::trace(LOG_TAG, "Creating a new {} Shader from path: {}", typeToStr(mType), pPath);
+
         std::ifstream file(pPath.data());
         if (!file.is_open()) {
-            Log::error(LOG_TAG, "Failed to open file:\n"
-                              "\t{}",
-                       pPath);
+            throw std::runtime_error("Failed to open file");
         }
 
         std::stringstream sourceStream;
@@ -25,57 +25,57 @@ namespace cglw {
         const char* source = sourceStr.c_str();
 
         glShaderSource(mID, 1, &source, nullptr);
+
         glCompileShader(mID);
+        {
+            GLint success = 0;
+            glGetShaderiv(mID, GL_COMPILE_STATUS, &success);
+            if (success == GL_FALSE) {
+                char infoLog[1024];
+                glGetShaderInfoLog(mID, 1024, nullptr, infoLog);
 
-        GLint success = 0;
-        glGetShaderiv(mID, GL_COMPILE_STATUS, &success);
-        if (success == GL_FALSE) {
-            char infoLog[1024];
-            glGetShaderInfoLog(mID, 1024, nullptr, infoLog);
-
-            Log::error(LOG_TAG, "Failed to compile shader for file:\n"
-                                "\t{}\n"
-                                "\tGL Log: {}",
-                       pPath, infoLog);
+                throw std::runtime_error(std::format("Failed to compile Shader:\n"
+                                                     "\t{}", infoLog));
+            }
         }
+
+        Log::debug(LOG_TAG, "Successfully created a {} Shader, ID: {}", typeToStr(mType), mID);
     }
 
     Shader::~Shader() {
-        tryDestroy();
+        Log::trace(LOG_TAG, "Destroying a {} Shader, ID: {}", typeToStr(mType), mID);
+
+        if (mID != INVALID_ID) glDeleteShader(mID);
+
+        Log::debug(LOG_TAG, "Successfully destroyed a Shader");
     }
 
-    Shader::Shader(Shader &&other) noexcept : mType(other.mType), Object(std::move(other)) {
+    Shader::Shader(Shader &&other) noexcept : mType(other.mType) {
+        mID = std::exchange(other.mID, INVALID_ID);
 
+        Log::trace(LOG_TAG, "Moving a {} Shader, ID: {}", typeToStr(mType), mID);
     }
 
     Shader &Shader::operator=(Shader &&other) noexcept {
         if (this != &other) {
-            tryDestroy();
+            Log::trace(LOG_TAG, "Moving a {} Shader, ID: {} to a {} Shader, ID: {}", typeToStr(mType), mID, typeToStr(other.mType), other.mID);
 
-            Object::operator=(std::move(other));
+            if (mID != INVALID_ID) {
+                Log::trace(LOG_TAG, "Destroying a {} Shader, ID: {}", typeToStr(mType), mID);
+                glDeleteShader(mID);
+            }
+
             mType = other.mType;
-
+            mID = std::exchange(other.mID, INVALID_ID);
         }
 
         return *this;
     }
-
-
-    unsigned int cglw::Shader::create() {
-        unsigned int shader = INVALID_ID;
-
-        shader = glCreateShader(static_cast<GLenum>(mType));
-        if (shader == 0) {
-            Log::error(LOG_TAG, "Failed to create a new Shader from file");
+    constexpr std::string_view Shader::typeToStr(ShaderType pType) {
+        switch (pType) {
+            case ShaderType::Vertex: return "Vertex";
+            case ShaderType::Fragment: return "Fragment";
+            case ShaderType::Geometry: return "Geometry";
         }
-
-        return shader;
-    }
-    bool Shader::tryDestroy() {
-        if (mID == INVALID_ID) return false;
-
-        glDeleteShader(mID);
-
-        return true;
     }
 } // Engine

@@ -11,30 +11,24 @@
 #include <optional>
 
 namespace cglw {
-  class Framebuffer : public Object {
-      static constexpr std::string_view LOG_TAG = "cglw::Framebuffer";
-      static constexpr int NUM_FBO = 1; // Currently not setup for an array of FBO names
+    class Framebuffer : public Object {
+        static constexpr std::string_view LOG_TAG = "cglw::Framebuffer";
+        static constexpr int NUM_FBOS = 1; // Currently not setup for an array of FBO names
 
-      std::optional<Texture> mTexture = std::nullopt;
-      std::optional<Renderbuffer> mRenderbuffer = std::nullopt;
-
-      unsigned int create() override;
-      bool tryDestroy();
+        std::optional<Texture> mTexture = std::nullopt;
+        std::optional<Renderbuffer> mRenderbuffer = std::nullopt;
 
     public:
-      Framebuffer();
-      ~Framebuffer();
-      // disable copy
-      Framebuffer(const Framebuffer&) = delete;
-      Framebuffer& operator=(const Framebuffer&) = delete;
-      // moving
-      Framebuffer(Framebuffer&& other) noexcept;
-      Framebuffer& operator=(Framebuffer&& other) noexcept;
+        Framebuffer();
+        ~Framebuffer() override;
+        // moving
+        Framebuffer(Framebuffer&& other) noexcept;
+        Framebuffer& operator=(Framebuffer&& other) noexcept;
 
-      bool isComplete();
-      bool tryAttachTexture(Texture& pNewTexture, std::optional<Texture> pOldTexture = std::nullopt);
-      bool tryAttachRenderbuffer(Renderbuffer& pNewRenderbuffer, std::optional<Renderbuffer> pOldRenderbuffer = std::nullopt);
-  };
+        bool isComplete();
+        bool tryAttachTexture(Texture& pNewTexture, std::optional<Texture> pOldTexture = std::nullopt);
+        bool tryAttachRenderbuffer(Renderbuffer& pNewRenderbuffer, std::optional<Renderbuffer> pOldRenderbuffer = std::nullopt);
+    };
 } // CE
 
 #endif //PROJECTTSUNAMIMOONLIGHT_FRAMEBUFFER_H

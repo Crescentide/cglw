@@ -6,117 +6,88 @@
 #include "Framebuffer.h"
 #include "Log.h"
 #include "glad/gl.h"
+#include <utility>
 
 namespace cglw {
-  Framebuffer::Framebuffer() : Object(create(), Object::Type::Framebuffer) {
+    Framebuffer::Framebuffer() {
+        Log::trace(LOG_TAG, "Creating a new Framebuffer");
 
-  }
+        glCreateFramebuffers(NUM_FBOS, &mID);
+        if (mID == INVALID_ID) {
+            throw std::runtime_error("Failed to create new Framebuffer!");
+        }
 
-  unsigned int Framebuffer::create() {
-    unsigned int fbo = INVALID_ID; // 0 is the invalid id
-
-    glCreateFramebuffers(NUM_FBO, &fbo);
-    if (fbo == INVALID_ID) {
-      Log::warn(LOG_TAG, "Failed to create a new Framebuffer");
+        Log::debug(LOG_TAG, "Successfully created a Framebuffer, ID: {}", mID);
     }
 
-    return fbo;
-  }
+    Framebuffer::~Framebuffer() {
+        Log::trace(LOG_TAG, "Destroying a Framebuffer, ID: {}", mID);
 
-  Framebuffer::~Framebuffer() {
-    tryDestroy();
-  }
+        if (mID != INVALID_ID) glDeleteFramebuffers(NUM_FBOS, &mID);
 
-  Framebuffer::Framebuffer(Framebuffer &&other) noexcept
-  : Object(std::move(other)), mTexture(std::move(other.mTexture)), mRenderbuffer(std::move(other.mRenderbuffer)) {
-    other.mTexture = std::nullopt;
-    other.mRenderbuffer = std::nullopt;
-  }
-
-  Framebuffer &Framebuffer::operator=(Framebuffer &&other) noexcept {
-    if (this != &other) {
-      tryDestroy();
-
-      Object::operator=(std::move(other));
-      mTexture = std::move(other.mTexture);
-      mRenderbuffer = std::move(other.mRenderbuffer);
-
-      other.mTexture = std::nullopt;
-      other.mRenderbuffer = std::nullopt;
+        Log::debug(LOG_TAG, "Successfully destroyed a Framebuffer");
     }
 
-    return *this;
-  }
+    Framebuffer::Framebuffer(Framebuffer &&other) noexcept
+        : mTexture(std::move(other.mTexture)),
+          mRenderbuffer(std::move(other.mRenderbuffer)) {
+        mID = std::exchange(other.mID, INVALID_ID);
 
-  bool Framebuffer::tryDestroy() {
-    if (mID == INVALID_ID) return false;
-
-    glDeleteFramebuffers(NUM_FBO, &mID);
-    mTexture = std::nullopt;
-    mRenderbuffer = std::nullopt;
-
-    return true;
-  }
-
-  bool Framebuffer::isComplete() {
-    bool value = false;
-
-    if (!isValid()) {
-      Log::warn(LOG_TAG, "Failed to check if Framebuffer is complete: \n"
-                          "\tThis Framebuffer is invalid!");
-      return false;
+        Log::trace(LOG_TAG, "Moving a Framebuffer, ID: {}", mID);
     }
 
-    value = glCheckNamedFramebufferStatus(mID, GL_FRAMEBUFFER_COMPLETE);
+    Framebuffer &Framebuffer::operator=(Framebuffer &&other) noexcept {
+        if (this != &other) {
+            Log::trace(LOG_TAG, "Moving a Framebuffer, ID: {} to Framebuffer, ID: {}",
+                       mID, other.mID);
 
-    return value;
-  }
-  bool Framebuffer::tryAttachTexture(Texture& pNewTexture, std::optional<Texture> pOldTexture) {
-    if (!isValid()) {
-      Log::warn(LOG_TAG, "Failed to attach a Texture to a Framebuffer:\n"
-                         "\tThis Framebuffer is invalid!");
-      return false;
+            if (mID != INVALID_ID)  {
+                Log::trace(LOG_TAG, "Destroying a Framebuffer, ID: {}", mID);
+                glDeleteFramebuffers(NUM_FBOS, &mID);
+            }
+
+            mTexture = std::move(other.mTexture);
+            mRenderbuffer = std::move(other.mRenderbuffer);
+            mID = std::exchange(other.mID, INVALID_ID);
+        }
+
+        return *this;
     }
 
-    // TODO: is texture valid
-
-    glNamedFramebufferTexture(mID, GL_COLOR_ATTACHMENT0, pNewTexture.getId(), 0);
-
-    if (!isComplete()) {
-      Log::warn(LOG_TAG, "Failed to attach a Texture to a Framebuffer:\n"
-                         "\tThis Framebuffer is incomplete after trying to attach a Texture!");
-      return false;
+    bool Framebuffer::isComplete() {
+        return glCheckNamedFramebufferStatus(mID, GL_FRAMEBUFFER_COMPLETE);
     }
 
-    if (mTexture.has_value())
-      pOldTexture = std::move(mTexture);
-    mTexture = std::move(pNewTexture);
+    bool Framebuffer::tryAttachTexture(Texture& pNewTexture, std::optional<Texture> pOldTexture) {
+        glNamedFramebufferTexture(mID, GL_COLOR_ATTACHMENT0, pNewTexture.getID(), 0);
 
-    return true;
-  }
-  bool Framebuffer::tryAttachRenderbuffer(
-      Renderbuffer &pNewRenderbuffer,
-      std::optional<Renderbuffer> pOldRenderbuffer) {
-    if (!isValid()) {
-      Log::warn(LOG_TAG, "Failed to attach a Renderbuffer to a Framebuffer:\n"
-                         "\tThis Framebuffer is invalid!");
-      return false;
+        if (!isComplete()) {
+          Log::warn(LOG_TAG, "Failed to attach a Texture to a Framebuffer:\n"
+                             "\tThis Framebuffer is incomplete after trying to attach a Texture!");
+          return false;
+        }
+
+        if (mTexture.has_value())
+          pOldTexture = std::move(mTexture);
+        mTexture = std::move(pNewTexture);
+
+        return true;
     }
 
+    bool Framebuffer::tryAttachRenderbuffer(Renderbuffer &pNewRenderbuffer,
+                                            std::optional<Renderbuffer> pOldRenderbuffer) {
+        glNamedFramebufferRenderbuffer(mID, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, pNewRenderbuffer.getID());
 
-    glNamedFramebufferRenderbuffer(mID, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, pNewRenderbuffer.getID());
+        if (!isComplete()) {
+          Log::warn(LOG_TAG, "Failed to attach a Renderbuffer to a Framebuffer:\n"
+                             "\tThis Framebuffer is incomplete after trying to attach a Renderbuffer!");
+          return false;
+        }
 
-    if (!isComplete()) {
-      Log::warn(LOG_TAG, "Failed to attach a Renderbuffer to a Framebuffer:\n"
-                         "\tThis Framebuffer is incomplete after trying to attach a Renderbuffer!");
-      return false;
+        if (mRenderbuffer.has_value())
+          pOldRenderbuffer = std::move(mRenderbuffer);
+        mRenderbuffer = std::move(pNewRenderbuffer);
+
+        return true;
     }
-
-    if (mRenderbuffer.has_value())
-      pOldRenderbuffer = std::move(mRenderbuffer);
-    mRenderbuffer = std::move(pNewRenderbuffer);
-
-    return true;
-  }
-
-  } // CE
+} // CE

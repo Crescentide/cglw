@@ -20,11 +20,20 @@ namespace cglw {
         Critical
     };
 
-    class Log { // TODO: add ability to choose which log types you want
+    struct LogFlags {
+        unsigned int enableInfo: 1 = true;      // Denotes useful information
+        unsigned int enableDebug: 1 = true;     // Denotes testing and when stuff is successful
+        unsigned int enableWarn: 1 = true;      // Denotes user errors or invalid states
+        unsigned int enableTrace: 1 = true;     // Denotes when things are created
+        unsigned int enableError: 1 = true;     // Denotes when things fail but recoverable
+        unsigned int enableCritical: 1 = true;  // Denotes when things fail but NOT recoverable
+        unsigned int enableOpenGL: 1 = true;    // logging that OpenGL itself does
+        unsigned int padding: 1 = false;
+    };
+
+    class Log {
         static inline std::function<void(LogType, std::string_view, std::string)> callback; // logs are enabled by providing callback
-//        static inline uint32_t enabledTypes = 0x00000000;
-
-
+        static inline LogFlags flags;
 
         template<typename... Args>
         static void logBase(LogType type, std::string_view origin, std::format_string<Args...> fmt, Args&&... args);
@@ -33,16 +42,35 @@ namespace cglw {
                           const GLchar *message, const void *userParam);
     public:
         using Type = LogType;
-        bool allowDebug = false;
-        bool allowGLLogs = false;
+        using Flags = LogFlags;
 
-        Log() = delete;
-        static void enable(const std::function<void(LogType type, std::string_view origin, std::string msg)>& pCallback);
+        static void enable(const std::function<void(LogType type, std::string_view origin, std::string msg)>& pCallback,
+                           const LogFlags& pEnabledLogs);
 
-        static std::string_view typeToString(LogType pType);
-        static void setCallback(const std::function<void(LogType type, std::string_view origin, std::string msg)>&pCallback);
+        static constexpr std::string_view typeToStr(LogType type) {
+            switch (type) {
+                case LogType::Info: return "Info";
+                case LogType::Debug: return "Debug";
+                case LogType::Warn: return "Warn";
+                case LogType::Trace: return "Trace";
+                case LogType::Error: return "Error";
+                case LogType::Critical: return "Critical";
+            }
+            return "Unknown";
+        }
+        static constexpr bool isEnabled(LogType type) {
+            switch (type) {
+                case LogType::Info: return flags.enableInfo;
+                case LogType::Debug: return flags.enableDebug;
+                case LogType::Warn: return flags.enableWarn;
+                case LogType::Trace: return flags.enableTrace;
+                case LogType::Error: return flags.enableError;
+                case LogType::Critical: return flags.enableCritical;
+            }
+            return false;
+        }
 
-//region Normal
+        //region Normal Logs
         static void info(std::string_view origin, std::string_view message) {
             logBase(LogType::Info, origin, "{}", message);
         }
@@ -66,9 +94,9 @@ namespace cglw {
         static void critical(std::string_view origin, std::string_view message) {
             logBase(LogType::Critical, origin, "{}", message);
         }
-//endregion
+        //endregion
 
-//region Formatting
+        //region Formatting Logs
         template <typename... Args>
         static void info(std::string_view origin, std::format_string<Args...> fmt, Args&&... args) {
             logBase(LogType::Info, origin, fmt, std::forward<Args>(args)...);
@@ -98,20 +126,17 @@ namespace cglw {
         static void critical(std::string_view origin, std::format_string<Args...> fmt, Args&&... args) {
             logBase(LogType::Critical, origin, fmt, std::forward<Args>(args)...);
         }
-//endregion
+        //endregion
     };
 
     template<typename... Args>
     void Log::logBase(Type type, std::string_view origin, std::format_string<Args...> fmt, Args&&... args) {
-        if (!callback) return; // callback not assigned
+        if (!callback || !isEnabled(type)) return; // callback not assigned;
 
         std::string msg = std::format(fmt, std::forward<Args>(args)...);
 
         callback(type, origin, msg);
     }
-
-
-
 }// namespace CGL
 
 #endif//CGL_LOG_H

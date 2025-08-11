@@ -72,23 +72,12 @@ namespace cglw {
                 return; // don't expect anything else
         }
     }
-    std::string_view Log::typeToString(LogType pType) {
-        switch (pType) {
-            case LogType::Info: return "Info";
-            case LogType::Debug: return "Debug";
-            case LogType::Warn: return "Warn";
-            case LogType::Trace: return "Trace";
-            case LogType::Error: return "Error";
-            case LogType::Critical: return "Critical";
-            default: return "Unknown";
-        }
-    }
-    void Log::setCallback(const std::function<void(LogType, std::string_view, std::string)>&pCallback) {
-        callback = pCallback;
-    }
-    void Log::enable(const std::function<void(LogType, std::string_view, std::string)> &pCallback) {
+
+    void Log::enable(const std::function<void(LogType, std::string_view, std::string)> &pCallback, const LogFlags& pEnabledLogs) {
+        flags = pEnabledLogs;
         callback = pCallback;
 
+        if (!flags.enableOpenGL) return;
         glEnable(GL_DEBUG_OUTPUT);
         glDebugMessageCallback(glLog, nullptr);
     }

@@ -7,18 +7,18 @@
 namespace cglw {
     static constexpr std::string_view LOG_TAG = "cglw";
 
-    bool load(getGLFunction pLoadFunc, CGLWSettings &pSettings) {
+    bool load(Settings &pSettings) {
         if (pSettings.logCallback)
-            Log::enable(pSettings.logCallback);
+            Log::enable(pSettings.logCallback, pSettings.enabledLogs);
 
-        int version = gladLoadGL(pLoadFunc);
+        int version = gladLoadGL(pSettings.loadFunc);
         if (!version) {
             Log::critical(LOG_TAG, "Failed to initialize Crescentide OpenGL Wrapper:\n"
                                    "\tGLAD failed to load OpenGL functions!");
             return false;
         }
 
-        Log::debug(LOG_TAG,
+        Log::info(LOG_TAG,
                    "Loaded OpenGL {}.{}\n"
                    "\tVendor: {}\n"
                    "\tRenderer: {}\n"
@@ -29,7 +29,7 @@ namespace cglw {
                    reinterpret_cast<const char*>(glGetString(GL_RENDERER)),
                    reinterpret_cast<const char*>(glGetString(GL_VERSION)));
 
-
+        // shit
 
         return true;
     }

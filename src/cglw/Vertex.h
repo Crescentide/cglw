@@ -25,7 +25,6 @@ struct VertexAttribute {
   size_t offset = 0;
 };
 
-// Now we can safely define these
 static constexpr std::array<VertexAttribute, 3> VertexAttributes = {{
     {3, GL_FLOAT, false, offsetof(Vertex, position)},
     {2, GL_FLOAT, false, offsetof(Vertex, texCoord)},

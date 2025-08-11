@@ -2,60 +2,31 @@
 // Created by kirut on 8/6/2025.
 //
 
-#ifndef PROJECTTSUNAMIMOONLIGHT_OBJECT_H
-#define PROJECTTSUNAMIMOONLIGHT_OBJECT_H
+#ifndef CGLW_OBJECT_H
+#define CGLW_OBJECT_H
 
-#include <unordered_map>
 #include <string>
 
 namespace cglw {
+    // This really just reduces boilerplate for the rest of OpenGL objects and provides info on the types of methods to implement
+    class Object {
+        static constexpr std::string_view LOG_TAG = "cglw::Object";
 
-enum class ObjectType {
-  Invalid,
-  Buffer,
-  Framebuffer,
-  Program,
-  Renderbuffer,
-  Shader,
-  Texture,
-  VertexArray
-};
+    protected:
+        using ID = unsigned int;
+        static constexpr ID INVALID_ID = 0;
 
-class Object {
-  static constexpr std::string_view LOG_TAG = "cglw::Object";
-//  static std::unordered_map<ObjectType, unsigned int> bounded;
+        ID mID = INVALID_ID;
 
-  bool tryDestroy();
-  static std::string typeToStr(ObjectType pType);
+    public:
+        Object() = default;
+        virtual ~Object() = default;
+        // moving
+        Object(Object&& other) noexcept = default;
+        Object& operator=(Object&& other) noexcept = default;
 
-protected:
-  static constexpr unsigned int INVALID_ID = 0;
-
-  unsigned int mID;
-  ObjectType mGLType;
-
-  virtual unsigned int create() = 0;
-  virtual void invalidate();
-
-public:
-  using Type = ObjectType;
-
-  Object();
-  explicit Object(unsigned int pID, ObjectType pType);
-  ~Object();
-  // disable copy
-  Object(const Object&) = delete;
-  Object& operator=(const Object&) = delete;
-  // moving
-  Object(Object&& other) noexcept;
-  Object& operator=(Object&& other) noexcept;
-
-  [[nodiscard]] unsigned int getID() const { return mID; };
-  [[nodiscard]] bool isValid() const { return mID != INVALID_ID; };
-
-
-};
-
+        [[nodiscard]] unsigned int getID() const { return mID; };
+    };
 } // namespace CE
 
-#endif // PROJECTTSUNAMIMOONLIGHT_OBJECT_H
+#endif // CGLW_OBJECT_H

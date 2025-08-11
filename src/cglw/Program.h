@@ -16,26 +16,15 @@ namespace cglw {
     class Program : public Object {
       static constexpr std::string_view LOG_TAG = "cglw::Program";
 
-      std::vector<Shader> shaders;
-      mutable std::unordered_map<std::string_view, int> uniforms;
-
-      unsigned int create() override;
-      bool tryDestroy();
-      virtual void invalidate() override;
+      std::vector<Shader> mShaders;
+      mutable std::unordered_map<std::string_view, int> mUniforms;
 
     public:
-        Program();
-        ~Program();
-        // disable copy
-        Program(const Program&) = delete;
-        Program& operator=(const Program&) = delete;
+        explicit Program(std::vector<Shader>& pShaders);
+        ~Program() override;
         // moving
         Program(Program&& other) noexcept;
         Program& operator=(Program&& other) noexcept;
-
-        void attachShader(const Shader& shader);
-        [[nodiscard]] bool link() const;
-
 
         void use() const;
         static void unUse();

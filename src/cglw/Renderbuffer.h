@@ -14,23 +14,15 @@ namespace cglw {
 
     class Renderbuffer : public Object {
         static constexpr std::string_view LOG_TAG = "cglw::Renderbuffer";
-        static constexpr int NUM_RBO = 1;
-
-        unsigned int create() override;
-        bool tryDestroy();
+        static constexpr int NUM_RBOS = 1;
 
     public:
         Renderbuffer();
-        ~Renderbuffer();
-        // disable copy
-        Renderbuffer(const Renderbuffer&) = delete;
-        Renderbuffer& operator=(const Renderbuffer&) = delete;
+        ~Renderbuffer() override;
         // moving
         Renderbuffer(Renderbuffer&& other) noexcept;
         Renderbuffer& operator=(Renderbuffer&& other) noexcept;
 
-        void bind() const;
-        void unbind() const;
         void setStorage(const glm::ivec2& pSize) const;
     };
 

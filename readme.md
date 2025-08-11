@@ -5,7 +5,7 @@ Author: kiru
 # Crescentide OpenGL Wrapper Library (cglw)
 
 This is a c++ opengl wrapper library primarily used for [Project TsunamiMoonlight], 
-however it could possibly be applied for other projects if one so desires.
+however it could possibly be applied to other projects if one so desires.
 
 ---
 
